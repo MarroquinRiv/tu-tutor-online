@@ -1,86 +1,72 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
-import { Users, Calendar, DollarSign, TrendingUp } from "lucide-react"
-import { useEffect, useState } from "react"
-import { getTutorStats, getTutorAppointments } from "@/lib/appointment-actions"
+import { Button } from "@/components/ui/button"
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
+import { Users, Calendar, DollarSign } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { 
+  CHART_DATA_7_DAYS, 
+  CHART_DATA_30_DAYS, 
+  CHART_DATA_90_DAYS,
+  type TimeRange,
+  type ChartDataPoint 
+} from "@/lib/chart-data"
 
-interface Stats {
-  newStudentsThisWeek: number
-  completedSessionsThisMonth: number
-  earningsThisMonth: number
+// Datos ficticios para métricas
+const MOCK_STATS = {
+  newStudentsThisWeek: 5,
+  completedSessionsThisWeek: 8,
+  earningsThisMonth: 1280,
 }
 
-interface Appointment {
-  id: string
-  student_name: string
-  subject: string
-  date_time: string
-  duration: number
-  total_price: number
-  status: string
-}
-
-// Datos ficticios para las gráficas
-const weeklyEarningsData = [
-  { day: "Lun", ingresos: 120 },
-  { day: "Mar", ingresos: 180 },
-  { day: "Mié", ingresos: 240 },
-  { day: "Jue", ingresos: 160 },
-  { day: "Vie", ingresos: 300 },
-  { day: "Sáb", ingresos: 200 },
-  { day: "Dom", ingresos: 80 },
+// Datos ficticios para próximas citas
+const upcomingAppointments = [
+  {
+    id: "1",
+    student_name: "Ana López",
+    subject: "Matemáticas",
+    date_time: new Date(2025, 9, 23, 10, 0).toISOString(),
+    duration: 1,
+    total_price: 20,
+    status: "programada",
+  },
+  {
+    id: "2",
+    student_name: "Carlos Ramírez",
+    subject: "Programación",
+    date_time: new Date(2025, 9, 23, 15, 30).toISOString(),
+    duration: 1.5,
+    total_price: 30,
+    status: "programada",
+  },
+  {
+    id: "3",
+    student_name: "María González",
+    subject: "Inglés",
+    date_time: new Date(2025, 9, 24, 11, 0).toISOString(),
+    duration: 1,
+    total_price: 20,
+    status: "programada",
+  },
 ]
 
-const dailySessionsData = [
-  { day: "Lun", sesiones: 2 },
-  { day: "Mar", sesiones: 3 },
-  { day: "Mié", sesiones: 4 },
-  { day: "Jue", sesiones: 2 },
-  { day: "Vie", sesiones: 5 },
-  { day: "Sáb", sesiones: 3 },
-  { day: "Dom", sesiones: 1 },
+const TIME_RANGES = [
+  { value: '7d' as TimeRange, label: 'Last 7 days', data: CHART_DATA_7_DAYS },
+  { value: '30d' as TimeRange, label: 'Last 30 days', data: CHART_DATA_30_DAYS },
+  { value: '90d' as TimeRange, label: 'Last 3 months', data: CHART_DATA_90_DAYS },
 ]
 
 export default function TutorDashboardPage() {
-  const [stats, setStats] = useState<Stats>({
-    newStudentsThisWeek: 0,
-    completedSessionsThisMonth: 0,
-    earningsThisMonth: 0,
-  })
-  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [statsResult, appointmentsResult] = await Promise.all([
-          getTutorStats(),
-          getTutorAppointments(),
-        ])
-
-        if (statsResult.stats) {
-          setStats(statsResult.stats)
-        }
-
-        if (appointmentsResult.appointments) {
-          // Tomar solo las 3 próximas citas
-          setUpcomingAppointments(appointmentsResult.appointments.slice(0, 3))
-        }
-      } catch (error) {
-        console.error("Error loading dashboard data:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadData()
-  }, [])
+  const [selectedRange, setSelectedRange] = useState<TimeRange>('30d')
+  
+  const currentRangeData = TIME_RANGES.find(r => r.value === selectedRange)
+  const chartData = currentRangeData?.data || CHART_DATA_30_DAYS
+  const rangeLabel = currentRangeData?.label.toLowerCase() || 'last 30 days'
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -89,17 +75,6 @@ export default function TutorDashboardPage() {
       cancelada: "destructive",
     }
     return <Badge variant={variants[status] || "outline"}>{status}</Badge>
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Cargando dashboard...</p>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -122,7 +97,7 @@ export default function TutorDashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.newStudentsThisWeek}</div>
+            <div className="text-2xl font-bold">{MOCK_STATS.newStudentsThisWeek}</div>
             <p className="text-xs text-muted-foreground">
               Esta semana
             </p>
@@ -137,9 +112,9 @@ export default function TutorDashboardPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.completedSessionsThisMonth}</div>
+            <div className="text-2xl font-bold">{MOCK_STATS.completedSessionsThisWeek}</div>
             <p className="text-xs text-muted-foreground">
-              Este mes
+              Esta semana
             </p>
           </CardContent>
         </Card>
@@ -152,7 +127,7 @@ export default function TutorDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.earningsThisMonth.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${MOCK_STATS.earningsThisMonth}</div>
             <p className="text-xs text-muted-foreground">
               Este mes
             </p>
@@ -160,53 +135,103 @@ export default function TutorDashboardPage() {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Ingresos Semanales</CardTitle>
-            <CardDescription>
-              Tus ganancias de los últimos 7 días
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={weeklyEarningsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="ingresos" fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Sesiones Diarias</CardTitle>
-            <CardDescription>
-              Número de sesiones por día
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dailySessionsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="sesiones" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Interactive Area Chart */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Sesiones Completadas</CardTitle>
+              <CardDescription className="mt-1">
+                Total for the {rangeLabel}
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              {TIME_RANGES.map((range) => (
+                <Button
+                  key={range.value}
+                  variant={selectedRange === range.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedRange(range.value)}
+                  className="text-xs"
+                >
+                  {range.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <AreaChart 
+              data={chartData}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                className="stroke-muted" 
+                vertical={false}
+              />
+              <XAxis
+                dataKey="date"
+                className="text-xs"
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={false}
+                axisLine={false}
+                interval={selectedRange === '90d' ? 14 : selectedRange === '30d' ? 4 : 0}
+              />
+              <YAxis
+                className="text-xs"
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="rounded-lg border bg-background p-2 shadow-sm">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="flex flex-col">
+                            <span className="text-[0.70rem] uppercase text-muted-foreground">
+                              Fecha
+                            </span>
+                            <span className="font-bold text-muted-foreground">
+                              {payload[0].payload.date}
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[0.70rem] uppercase text-muted-foreground">
+                              Sesiones
+                            </span>
+                            <span className="font-bold">
+                              {payload[0].value}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="sessions"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                fill="url(#colorSessions)"
+                fillOpacity={1}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Upcoming Appointments */}
       <Card>
@@ -217,50 +242,44 @@ export default function TutorDashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {upcomingAppointments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No tienes citas programadas
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {upcomingAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <Avatar>
-                      <AvatarFallback>
-                        {appointment.student_name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()
-                          .slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{appointment.student_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {appointment.subject}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm font-medium">
-                        {format(new Date(appointment.date_time), "PPp", { locale: es })}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {appointment.duration}h - ${appointment.total_price}
-                      </p>
-                    </div>
-                    {getStatusBadge(appointment.status)}
+          <div className="space-y-4">
+            {upcomingAppointments.map((appointment) => (
+              <div
+                key={appointment.id}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
+                <div className="flex items-center gap-4">
+                  <Avatar>
+                    <AvatarFallback>
+                      {appointment.student_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{appointment.student_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {appointment.subject}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-sm font-medium">
+                      {format(new Date(appointment.date_time), "PPp", { locale: es })}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {appointment.duration}h - ${appointment.total_price}
+                    </p>
+                  </div>
+                  {getStatusBadge(appointment.status)}
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

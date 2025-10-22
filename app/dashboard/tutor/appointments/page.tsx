@@ -19,7 +19,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { getTutorAppointments, updateAppointmentStatus } from "@/lib/appointment-actions"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Calendar, Plus, MoreHorizontal, Check, X } from "lucide-react"
@@ -28,15 +27,13 @@ import { toast } from "sonner"
 
 interface Appointment {
   id: string
-  student_name: string
+  studentName: string
   subject: string
-  date_time: string
+  dateTime: string
   duration: number
-  price_per_hour: number
-  total_price: number
   status: string
   notes?: string
-  meeting_link?: string
+  meetingLink?: string
 }
 
 export default function AppointmentsPage() {
@@ -45,12 +42,14 @@ export default function AppointmentsPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const router = useRouter()
 
-  const loadAppointments = async () => {
+  const loadAppointments = () => {
     setLoading(true)
     try {
-      const result = await getTutorAppointments()
-      if (result.appointments) {
-        setAppointments(result.appointments)
+      // Leer citas desde localStorage
+      const stored = localStorage.getItem("tutor_appointments")
+      if (stored) {
+        const parsedAppointments = JSON.parse(stored)
+        setAppointments(parsedAppointments)
       }
     } catch (error) {
       console.error("Error loading appointments:", error)
@@ -64,16 +63,16 @@ export default function AppointmentsPage() {
     loadAppointments()
   }, [])
 
-  const handleStatusUpdate = async (appointmentId: string, newStatus: string) => {
+  const handleStatusUpdate = (appointmentId: string, newStatus: string) => {
     setUpdatingId(appointmentId)
     try {
-      const result = await updateAppointmentStatus(appointmentId, newStatus)
-      if (result.success) {
-        toast.success("Estado actualizado")
-        await loadAppointments()
-      } else {
-        toast.error(result.error || "Error al actualizar")
-      }
+      // Actualizar estado en localStorage
+      const updatedAppointments = appointments.map((apt) =>
+        apt.id === appointmentId ? { ...apt, status: newStatus } : apt
+      )
+      localStorage.setItem("tutor_appointments", JSON.stringify(updatedAppointments))
+      setAppointments(updatedAppointments)
+      toast.success("Estado actualizado")
     } catch (error) {
       toast.error("Error al actualizar el estado")
     } finally {
@@ -83,10 +82,9 @@ export default function AppointmentsPage() {
 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      pendiente: { variant: "default", label: "Pendiente" },
-      programada: { variant: "default", label: "Programada" },
-      completada: { variant: "secondary", label: "Completada" },
-      cancelada: { variant: "destructive", label: "Cancelada" },
+      scheduled: { variant: "default", label: "Programada" },
+      completed: { variant: "secondary", label: "Completada" },
+      cancelled: { variant: "destructive", label: "Cancelada" },
     }
     const { variant, label } = config[status] || { variant: "outline" as const, label: status }
     return <Badge variant={variant}>{label}</Badge>
@@ -164,27 +162,27 @@ export default function AppointmentsPage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
                             <AvatarFallback>
-                              {appointment.student_name
+                              {appointment.studentName
                                 .split(" ")
-                                .map((n) => n[0])
+                                .map((n: string) => n[0])
                                 .join("")
                                 .toUpperCase()
                                 .slice(0, 2)}
                             </AvatarFallback>
                           </Avatar>
                           <span className="font-medium">
-                            {appointment.student_name}
+                            {appointment.studentName}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>{appointment.subject}</TableCell>
                       <TableCell>
-                        {format(new Date(appointment.date_time), "PPp", {
+                        {format(new Date(appointment.dateTime), "PPp", {
                           locale: es,
                         })}
                       </TableCell>
                       <TableCell>{appointment.duration}h</TableCell>
-                      <TableCell>${appointment.total_price}</TableCell>
+                      <TableCell>-</TableCell>
                       <TableCell>{getStatusBadge(appointment.status)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -198,20 +196,20 @@ export default function AppointmentsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {appointment.status !== "completada" && (
+                            {appointment.status !== "completed" && (
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleStatusUpdate(appointment.id, "completada")
+                                  handleStatusUpdate(appointment.id, "completed")
                                 }
                               >
                                 <Check className="mr-2 h-4 w-4" />
                                 Marcar como completada
                               </DropdownMenuItem>
                             )}
-                            {appointment.status !== "cancelada" && (
+                            {appointment.status !== "cancelled" && (
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleStatusUpdate(appointment.id, "cancelada")
+                                  handleStatusUpdate(appointment.id, "cancelled")
                                 }
                                 className="text-destructive"
                               >
@@ -219,10 +217,10 @@ export default function AppointmentsPage() {
                                 Cancelar cita
                               </DropdownMenuItem>
                             )}
-                            {appointment.meeting_link && (
+                            {appointment.meetingLink && (
                               <DropdownMenuItem
                                 onClick={() =>
-                                  window.open(appointment.meeting_link, "_blank")
+                                  window.open(appointment.meetingLink, "_blank")
                                 }
                               >
                                 Abrir enlace de reunión

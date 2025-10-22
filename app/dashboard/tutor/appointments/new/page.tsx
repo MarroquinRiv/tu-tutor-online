@@ -31,16 +31,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { createAppointment, searchStudents } from "@/lib/appointment-actions"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { MOCK_STUDENTS } from "@/lib/mock-students"
 
 const appointmentSchema = z.object({
   studentId: z.string().min(1, "Debes seleccionar un estudiante"),
-  studentName: z.string().min(1, "El nombre es requerido"),
   subject: z.string().min(1, "La materia es requerida"),
   date: z.date({
     required_error: "La fecha es requerida",
@@ -60,14 +59,11 @@ export default function NewAppointmentPage() {
   const preselectedStudentId = searchParams.get("studentId")
   
   const [loading, setLoading] = useState(false)
-  const [students, setStudents] = useState<any[]>([])
-  const [loadingStudents, setLoadingStudents] = useState(true)
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
       studentId: preselectedStudentId || "",
-      studentName: "",
       subject: "",
       time: "10:00",
       duration: "1",
@@ -77,32 +73,6 @@ export default function NewAppointmentPage() {
     },
   })
 
-  useEffect(() => {
-    async function loadStudents() {
-      try {
-        const result = await searchStudents()
-        if (result.students) {
-          setStudents(result.students)
-          
-          // Si hay un estudiante preseleccionado, establecer su nombre
-          if (preselectedStudentId) {
-            const student = result.students.find(s => s.user_id === preselectedStudentId)
-            if (student) {
-              form.setValue("studentId", student.user_id)
-              form.setValue("studentName", `${student.nombre} ${student.apellido}`)
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error loading students:", error)
-      } finally {
-        setLoadingStudents(false)
-      }
-    }
-
-    loadStudents()
-  }, [preselectedStudentId])
-
   const onSubmit = async (values: AppointmentFormValues) => {
     setLoading(true)
     try {
@@ -111,50 +81,37 @@ export default function NewAppointmentPage() {
       const [hours, minutes] = values.time.split(":")
       dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
 
-      const result = await createAppointment({
-        studentId: values.studentId,
-        studentName: values.studentName,
+      const student = MOCK_STUDENTS.find(s => s.id === values.studentId)
+      
+      // Crear nueva cita
+      const newAppointment = {
+        id: Date.now().toString(),
+        studentName: student?.name || "Estudiante",
         subject: values.subject,
         dateTime: dateTime.toISOString(),
         duration: parseFloat(values.duration),
-        pricePerHour: parseFloat(values.pricePerHour),
+        status: "scheduled",
         notes: values.notes,
         meetingLink: values.meetingLink || undefined,
-      })
-
-      if (result.success) {
-        toast.success("Cita creada exitosamente")
-        router.push("/dashboard/tutor/appointments")
-      } else {
-        toast.error(result.error || "Error al crear la cita")
       }
+
+      // Guardar en localStorage
+      const stored = localStorage.getItem("tutor_appointments")
+      const appointments = stored ? JSON.parse(stored) : []
+      appointments.push(newAppointment)
+      localStorage.setItem("tutor_appointments", JSON.stringify(appointments))
+
+      toast.success("Cita creada exitosamente")
+      
+      // Redirigir a la página de citas
+      setTimeout(() => {
+        router.push("/dashboard/tutor/appointments")
+      }, 500)
     } catch (error) {
       toast.error("Error al crear la cita")
     } finally {
       setLoading(false)
     }
-  }
-
-  const selectedStudent = form.watch("studentId")
-
-  useEffect(() => {
-    if (selectedStudent && !preselectedStudentId) {
-      const student = students.find(s => s.user_id === selectedStudent)
-      if (student) {
-        form.setValue("studentName", `${student.nombre} ${student.apellido}`)
-      }
-    }
-  }, [selectedStudent, students, preselectedStudentId])
-
-  if (loadingStudents) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Cargando estudiantes...</p>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -194,9 +151,9 @@ export default function NewAppointmentPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {students.map((student) => (
-                          <SelectItem key={student.user_id} value={student.user_id}>
-                            {student.nombre} {student.apellido} - {student.nivel_educativo}
+                        {MOCK_STUDENTS.map((student) => (
+                          <SelectItem key={student.id} value={student.id}>
+                            {student.name} - {student.educationLevel}
                           </SelectItem>
                         ))}
                       </SelectContent>
