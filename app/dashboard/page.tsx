@@ -1,14 +1,21 @@
-export default function DashboardPage() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-white dark:bg-zinc-900">
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-50">
-          ¡Bienvenido!
-        </h1>
-        <p className="text-lg text-zinc-600 dark:text-zinc-400">
-          Has ingresado exitosamente al dashboard
-        </p>
-      </div>
-    </div>
-  )
+import { redirect } from "next/navigation"
+import { getUserRole } from "@/lib/role-actions"
+
+export default async function DashboardPage() {
+  // Verificar si el usuario tiene un rol asignado
+  const result = await getUserRole()
+
+  // Si no tiene rol o hay un error, redirigir a selección de rol
+  if (!result.role || result.error) {
+    redirect("/dashboard/select-role")
+  }
+
+  // Si tiene rol, redirigir según el tipo
+  if (result.role === "tutor") {
+    redirect("/dashboard/tutor-form")
+  } else {
+    redirect("/dashboard/student-form")
+  }
+
+  return null
 }
