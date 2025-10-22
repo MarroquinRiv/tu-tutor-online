@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { saveUserRole } from "@/lib/role-actions"
 import { toast } from "sonner"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function SelectRolePage() {
   const router = useRouter()
@@ -50,7 +51,12 @@ export default function SelectRolePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-zinc-900 p-4">
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-white dark:bg-zinc-900 p-4">
+      {/* Botón de cambio de tema en la esquina superior derecha */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
       <div className="max-w-5xl w-full space-y-8">
         {/* Título y descripción */}
         <div className="text-center space-y-3">
