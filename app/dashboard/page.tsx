@@ -31,7 +31,7 @@ export default async function DashboardPage() {
     }
     
     // Tiene perfil, redirigir al dashboard de estudiante
-    redirect("/dashboard/student-dashboard")
+    redirect("/dashboard/student")
   }
 
   return null

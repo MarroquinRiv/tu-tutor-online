@@ -81,7 +81,7 @@ export default function StudentFormPage() {
           description: "Redirigiendo a tu dashboard...",
         })
         setTimeout(() => {
-          router.push("/dashboard/student-dashboard")
+          router.push("/dashboard/student")
         }, 1500)
       }
     } catch (error) {
