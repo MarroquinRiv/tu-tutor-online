@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { Calendar, Plus, MoreHorizontal, Check, X } from "lucide-react"
+import { Calendar, Plus, MoreHorizontal, Check, X, FileText } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
@@ -80,6 +80,91 @@ export default function AppointmentsPage() {
     }
   }
 
+  const handleExportPDF = async () => {
+    try {
+      // Verificar que estamos en el cliente
+      if (typeof window === 'undefined') return
+
+      // Importar jsPDF y autoTable dinámicamente (solo en el cliente)
+      const { default: jsPDF } = await import('jspdf')
+      const autoTable = (await import('jspdf-autotable')).default
+
+      // Leer citas desde localStorage
+      const stored = localStorage.getItem("tutor_appointments")
+      const appointments: Appointment[] = stored ? JSON.parse(stored) : []
+
+      // Crear documento PDF
+      const doc = new jsPDF()
+
+      // Configurar fuente y colores
+      const primaryColor: [number, number, number] = [59, 130, 246] // blue-500
+      
+      // Título
+      doc.setFontSize(18)
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+      doc.text('Reporte de Citas', 14, 20)
+      
+      // Fecha de generación
+      doc.setFontSize(10)
+      doc.setTextColor(100, 100, 100)
+      const fechaGeneracion = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es })
+      doc.text(`Generado el: ${fechaGeneracion}`, 14, 28)
+      
+      // Si no hay citas
+      if (appointments.length === 0) {
+        doc.setFontSize(12)
+        doc.setTextColor(50, 50, 50)
+        doc.text('No hay citas registradas.', 14, 45)
+      } else {
+        // Preparar datos para la tabla
+        const tableData = appointments.map((apt) => {
+          const statusLabels: Record<string, string> = {
+            scheduled: "Programada",
+            completed: "Completada",
+            cancelled: "Cancelada",
+          }
+          
+          return [
+            apt.studentName,
+            apt.subject,
+            format(new Date(apt.dateTime), "dd/MM/yyyy HH:mm", { locale: es }),
+            `${apt.duration}h`,
+            statusLabels[apt.status] || apt.status,
+          ]
+        })
+
+        // Agregar tabla con autoTable
+        autoTable(doc, {
+          startY: 35,
+          head: [['Estudiante', 'Materia/Tema', 'Fecha y hora', 'Duración', 'Estado']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            fillColor: primaryColor,
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 10,
+          },
+          bodyStyles: {
+            fontSize: 9,
+            textColor: [50, 50, 50],
+          },
+          alternateRowStyles: {
+            fillColor: [245, 245, 245],
+          },
+          margin: { top: 35, left: 14, right: 14 },
+        })
+      }
+
+      // Guardar PDF
+      doc.save('reporte-citas-tutor.pdf')
+      toast.success('Reporte exportado exitosamente')
+    } catch (error) {
+      console.error('Error al generar PDF:', error)
+      toast.error('Error al generar el reporte PDF')
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
       scheduled: { variant: "default", label: "Programada" },
@@ -111,10 +196,19 @@ export default function AppointmentsPage() {
             Gestiona tus sesiones programadas
           </p>
         </div>
-        <Button onClick={() => router.push("/dashboard/tutor/appointments/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Cita
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={handleExportPDF}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Exportar reporte
+          </Button>
+          <Button onClick={() => router.push("/dashboard/tutor/appointments/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Cita
+          </Button>
+        </div>
       </div>
 
       {/* Appointments Table */}
