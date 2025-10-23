@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Users, Clock, CheckCircle2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   Area,
   AreaChart,
@@ -46,7 +47,7 @@ export default function StudentDashboardPage() {
             <CardTitle className="text-sm font-medium">
               Nuevos Tutores Disponibles
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">6</div>
@@ -61,7 +62,7 @@ export default function StudentDashboardPage() {
             <CardTitle className="text-sm font-medium">
               Horas de Estudio Este Mes
             </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12.5h</div>
@@ -76,7 +77,7 @@ export default function StudentDashboardPage() {
             <CardTitle className="text-sm font-medium">
               Sesiones Completadas
             </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle2 className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">4</div>
@@ -99,23 +100,32 @@ export default function StudentDashboardPage() {
             </div>
             <div className="flex gap-2">
               <Button
-                variant={timeRange === "7d" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setTimeRange("7d")}
+                className={cn(
+                  timeRange === "7d" && "bg-purple-600 text-white hover:bg-purple-700 border-purple-600"
+                )}
               >
                 7 días
               </Button>
               <Button
-                variant={timeRange === "30d" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setTimeRange("30d")}
+                className={cn(
+                  timeRange === "30d" && "bg-purple-600 text-white hover:bg-purple-700 border-purple-600"
+                )}
               >
                 30 días
               </Button>
               <Button
-                variant={timeRange === "90d" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setTimeRange("90d")}
+                className={cn(
+                  timeRange === "90d" && "bg-purple-600 text-white hover:bg-purple-700 border-purple-600"
+                )}
               >
                 3 meses
               </Button>
@@ -127,8 +137,8 @@ export default function StudentDashboardPage() {
             <AreaChart data={chartData[timeRange]}>
               <defs>
                 <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#9333ea" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -176,7 +186,7 @@ export default function StudentDashboardPage() {
               <Area
                 type="monotone"
                 dataKey="hours"
-                stroke="#3b82f6"
+                stroke="#9333ea"
                 strokeWidth={2}
                 fill="url(#colorHours)"
                 fillOpacity={1}

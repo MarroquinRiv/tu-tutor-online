@@ -96,8 +96,8 @@ export default function StudentAppointmentsPage() {
       // Crear documento PDF
       const doc = new jsPDF()
 
-      // Configurar fuente y colores
-      const primaryColor: [number, number, number] = [59, 130, 246] // blue-500
+      // Configurar fuente y colores - MORADO para estudiantes
+      const primaryColor: [number, number, number] = [147, 51, 234] // purple-600
       
       // Título
       doc.setFontSize(18)
@@ -179,7 +179,7 @@ export default function StudentAppointmentsPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Cargando citas...</p>
         </div>
       </div>
@@ -204,7 +204,10 @@ export default function StudentAppointmentsPage() {
             <FileText className="mr-2 h-4 w-4" />
             Exportar reporte
           </Button>
-          <Button onClick={() => router.push("/dashboard/student/appointments/new")}>
+          <Button 
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => router.push("/dashboard/student/appointments/new")}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nueva Cita
           </Button>
@@ -228,7 +231,7 @@ export default function StudentAppointmentsPage() {
                 Comienza creando tu primera cita
               </p>
               <Button
-                className="mt-4"
+                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white"
                 onClick={() => router.push("/dashboard/student/appointments/new")}
               >
                 <Plus className="mr-2 h-4 w-4" />

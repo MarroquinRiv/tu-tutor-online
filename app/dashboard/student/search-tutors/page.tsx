@@ -29,14 +29,21 @@ export default function SearchTutorsPage() {
   const getExperienceBadgeVariant = (experience: string) => {
     switch (experience) {
       case "Avanzado":
-        return "default"
+        return "default" as const
       case "Intermedio":
-        return "secondary"
+        return "secondary" as const
       case "Principiante":
-        return "outline"
+        return "outline" as const
       default:
-        return "outline"
+        return "outline" as const
     }
+  }
+
+  const getExperienceBadgeClass = (experience: string) => {
+    if (experience === "Avanzado") {
+      return "bg-purple-600 hover:bg-purple-700 text-white"
+    }
+    return ""
   }
 
   return (
@@ -122,7 +129,7 @@ export default function SearchTutorsPage() {
                         <CardTitle className="text-lg">{tutor.name}</CardTitle>
                         <Badge
                           variant={getExperienceBadgeVariant(tutor.experience)}
-                          className="mt-1"
+                          className={`mt-1 ${getExperienceBadgeClass(tutor.experience)}`}
                         >
                           {tutor.experience}
                         </Badge>
@@ -156,7 +163,7 @@ export default function SearchTutorsPage() {
                 </CardContent>
                 <CardFooter>
                   <Button
-                    className="w-full"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                     onClick={() =>
                       router.push(
                         `/dashboard/student/appointments/new?tutorId=${tutor.id}`
